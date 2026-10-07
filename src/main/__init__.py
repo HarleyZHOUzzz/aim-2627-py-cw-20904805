@@ -41,12 +41,24 @@ def hp_ratio(hp, max_hp):
     elif hp >= max_hp:
         return 100
     else:
+        hp = hp*1.0
+        max_hp = max_hp*1.0
         return int((hp / max_hp) * 100)
     raise NotImplementedError("Q1 hp_ratio：题面 Q1·血量百分比与精度保障")
 
 
 def status_report(name, robot_type, hp, max_hp, battery):
     """TODO(Q1)：一行自检报告字符串；档位判定与逐字符格式见题面 Q1 规范。"""
+    percent = hp_ratio(hp, max_hp)
+    model = None
+    if battery >= 60:
+        model = "OK"
+    elif 20 <= battery < 60:
+        model = "WARNING"
+    else:
+        model = "LOW"
+    result = f"{name:<10}|{robot_type:^10}|HP {percent:>3}%|BAT {battery:>3}%|{model}"
+    return result
     raise NotImplementedError("Q1 status_report：题面 Q1·电量映射与报告格式")
 
 
@@ -56,6 +68,7 @@ def status_report(name, robot_type, hp, max_hp, battery):
 def analyze_damage_log(lines):
     """TODO(Q2)：解析混合格式伤害日志，返回固定契约的统计 dict；
     行格式、去重与统计口径见题面 Q2 规范。"""
+
     raise NotImplementedError("Q2 analyze_damage_log：题面 Q2·多源日志解析与统计")
 
 
