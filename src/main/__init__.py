@@ -36,6 +36,12 @@ class Facing(Enum):
 # ---------------------------------------------------------------------------
 def hp_ratio(hp, max_hp):
     """TODO(Q1)：血量百分比，返回 0-100 的 int；计算与边界规则见题面 Q1 规范。"""
+    if hp <= 0:
+        return 0
+    elif hp >= max_hp:
+        return 100
+    else:
+        return int((hp / max_hp) * 100)
     raise NotImplementedError("Q1 hp_ratio：题面 Q1·血量百分比与精度保障")
 
 
