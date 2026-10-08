@@ -44,7 +44,6 @@ def hp_ratio(hp, max_hp):
         hp = hp*1.0
         max_hp = max_hp*1.0
         return int((hp / max_hp) * 100)
-    raise NotImplementedError("Q1 hp_ratio：题面 Q1·血量百分比与精度保障")
 
 
 def status_report(name, robot_type, hp, max_hp, battery):
@@ -59,7 +58,6 @@ def status_report(name, robot_type, hp, max_hp, battery):
         model = "LOW"
     result = f"{name:<10}|{robot_type:^10}|HP {percent:>3}%|BAT {battery:>3}%|{model}"
     return result
-    raise NotImplementedError("Q1 status_report：题面 Q1·电量映射与报告格式")
 
 
 # ---------------------------------------------------------------------------
@@ -147,7 +145,6 @@ def analyze_damage_log(lines):
         "most_hit": most_hit,
         "avg": avg
     }
-    raise NotImplementedError("Q2 analyze_damage_log：题面 Q2·多源日志解析与统计")
 
 
 # ---------------------------------------------------------------------------
@@ -242,7 +239,6 @@ class SentryGrid:
         else:
             self._pos = self._clamp_cell(value)
             return
-        raise NotImplementedError("Q3 current_pos.setter：题面 Q3·位置校验三步")
 
     def move_forward(self):
         """TODO(Q3)：朝当前 facing 前进一格，返回执行后的位置；
@@ -265,10 +261,10 @@ class SentryGrid:
             colli += 1
             self._collision_count = colli
             fuel = self._fuel
-            fuel -= 1
+            if self._fuel > 0:
+                fuel -= 1
             self._fuel = fuel
             return self.current_pos
-        raise NotImplementedError("Q3 move_forward：题面 Q3·前进、碰撞与断电")
 
     def turn_left(self):
         """TODO(Q3)：原地左转 90°，返回新的 Facing（不耗电）。"""
@@ -281,7 +277,6 @@ class SentryGrid:
         else:
             self._facing = Facing.RIGHT
         return self._facing
-        raise NotImplementedError("Q3 turn_left")
 
     def turn_right(self):
         """TODO(Q3)：原地右转 90°，返回新的 Facing（不耗电）。"""
@@ -294,7 +289,6 @@ class SentryGrid:
         else:
             self._facing = Facing.UP
         return self._facing
-        raise NotImplementedError("Q3 turn_right")
 
 
 # ---------------------------------------------------------------------------
@@ -303,7 +297,43 @@ class SentryGrid:
 def next_step_toward(pos, target, obstacles, current_facing=Facing.UP):
     """TODO(Q4)：返回下一步应朝向的 Facing；
     候选判定、优先级与回退规则见题面 Q4 规范。"""
-    raise NotImplementedError("Q4 next_step_toward：题面 Q4·贪心策略与回退")
+    moves = {
+        Facing.UP: (0, 1),
+        Facing.DOWN: (0, -1),
+        Facing.LEFT: (-1, 0),
+        Facing.RIGHT: (1, 0)
+    }
+    def manhattan(p1, p2):
+        return abs(p1[0] - p2[0]) + abs(p1[1] - p2[1])
+    current_dist = manhattan(pos, target)
+    candidates = []
+    for facing, (nx, ny) in moves.items():
+        next_pos = (pos[0] + nx, pos[1] + ny)
+        if next_pos in obstacles:
+            continue
+        next_dist = manhattan(next_pos, target)
+        if next_dist < current_dist:
+            candidates.append(facing)
+    if not candidates:
+        return current_facing
+    if len(candidates) == 1:
+        return candidates[0]
+    dx_target = target[0] - pos[0]
+    dy_target = target[1] - pos[1]
+    preferred = None
+    if abs(dx_target) > abs(dy_target):
+        if dx_target > 0:
+            preferred = Facing.RIGHT
+        else:
+            preferred = Facing.LEFT
+    elif abs(dx_target) < abs(dy_target):
+        if dy_target > 0:
+            preferred = Facing.UP
+        else:
+            preferred = Facing.DOWN
+    else:
+        preferred = candidates[0]
+    return preferred
 
 
 # ---------------------------------------------------------------------------
