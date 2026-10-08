@@ -177,7 +177,7 @@ class SentryGrid:
         self._facing = facing
         self._fuel = int(fuel)
         self._collision_count = 0
-        self._pos = self._clamp_cell(start_pos)
+        self.current_pos = start_pos
         if self._pos in self._obstacles:
             raise ValueError("start_pos 不能位于障碍物上")
 
@@ -237,19 +237,63 @@ class SentryGrid:
     @current_pos.setter
     def current_pos(self, value):
         """TODO(Q3)：位置 setter；三重输入校验见题面 Q3 规范第 1 条。"""
+        if not isinstance(value, (tuple, list)) or len(value) != 2:
+            raise TypeError
+        else:
+            self._pos = self._clamp_cell(value)
+            return
         raise NotImplementedError("Q3 current_pos.setter：题面 Q3·位置校验三步")
 
     def move_forward(self):
         """TODO(Q3)：朝当前 facing 前进一格，返回执行后的位置；
         碰撞、耗电与断电语义见题面 Q3 规范。"""
+        x = self.current_pos[0]
+        y = self.current_pos[1]
+        face = self._facing.value
+        x += face[0]
+        y += face[1]
+        if not self.is_blocked(x, y) and self.fuel > 0:
+            self.current_pos = (x, y)
+            fuel = self._fuel
+            fuel -= 1
+            self._fuel = fuel
+            self.current_pos = (x, y)
+            new_pos = (x, y)
+            return new_pos
+        else:
+            colli = self.collision_count
+            colli += 1
+            self._collision_count = colli
+            fuel = self._fuel
+            fuel -= 1
+            self._fuel = fuel
+            return self.current_pos
         raise NotImplementedError("Q3 move_forward：题面 Q3·前进、碰撞与断电")
 
     def turn_left(self):
         """TODO(Q3)：原地左转 90°，返回新的 Facing（不耗电）。"""
+        if self.facing == Facing.LEFT:
+            self._facing = Facing.DOWN
+        elif self.facing == Facing.RIGHT:
+            self._facing = Facing.UP
+        elif self.facing == Facing.UP:
+            self._facing = Facing.LEFT
+        else:
+            self._facing = Facing.RIGHT
+        return self._facing
         raise NotImplementedError("Q3 turn_left")
 
     def turn_right(self):
         """TODO(Q3)：原地右转 90°，返回新的 Facing（不耗电）。"""
+        if self.facing == Facing.RIGHT:
+            self._facing = Facing.DOWN
+        elif self.facing == Facing.DOWN:
+            self._facing = Facing.LEFT
+        elif self.facing == Facing.UP:
+            self._facing = Facing.RIGHT
+        else:
+            self._facing = Facing.UP
+        return self._facing
         raise NotImplementedError("Q3 turn_right")
 
 
