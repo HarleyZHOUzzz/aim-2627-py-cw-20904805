@@ -303,6 +303,7 @@ def next_step_toward(pos, target, obstacles, current_facing=Facing.UP):
         Facing.LEFT: (-1, 0),
         Facing.RIGHT: (1, 0)
     }
+
     def manhattan(p1, p2):
         return abs(p1[0] - p2[0]) + abs(p1[1] - p2[1])
     current_dist = manhattan(pos, target)
