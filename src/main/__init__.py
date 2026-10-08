@@ -136,7 +136,11 @@ def analyze_damage_log(lines):
             if dmg > max_dmg:
                 max_dmg = dmg
                 most_hit = armor
-    avg = round(total_damage / valid_event_count, 2) if valid_event_count > 0 else 0.0
+    avg = (
+        round(total_damage / valid_event_count, 2)
+        if valid_event_count > 0
+        else 0.0
+    )
     return {
         "total": total_damage,
         "by_armor": by_armor,
