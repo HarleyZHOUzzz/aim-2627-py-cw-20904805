@@ -94,7 +94,7 @@ def analyze_damage_log(lines):
                         seen_ids.add(log_id)
                     is_valid = True
                     current_damage = damage
-                    current_armor_damage[armor] = damage #Type: ignore
+                    current_armor_damage[armor] = damage  # type: ignore
         except json.JSONDecodeError:
             parts = line.split(',')
             sensor_valid = True
