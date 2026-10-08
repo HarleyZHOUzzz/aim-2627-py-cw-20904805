@@ -68,7 +68,81 @@ def status_report(name, robot_type, hp, max_hp, battery):
 def analyze_damage_log(lines):
     """TODO(Q2)：解析混合格式伤害日志，返回固定契约的统计 dict；
     行格式、去重与统计口径见题面 Q2 规范。"""
-
+    total_damage = 0
+    by_armor = {"front": 0, "left": 0, "right": 0}
+    armors = ['front', 'left', 'right']
+    valid_event_count = 0
+    seen_ids = set()
+    armor_map = {'F': 'front', 'L': 'left', 'R': 'right'}
+    for line in lines:
+        line = line.strip()
+        if not line or line.startswith("#"):
+            continue
+        is_valid = False
+        current_damage = 0
+        current_armor_damage = {"front": 0, "left": 0, "right": 0}
+        try:
+            data = json.loads(line)
+            if isinstance(data, dict):
+                armor = data.get('armor')
+                damage = data.get('damage')
+                if armor in armors and isinstance(damage, int) and damage > 0:
+                    if 'id' in data:
+                        log_id = data['id']
+                        if log_id in seen_ids:
+                            continue
+                        seen_ids.add(log_id)
+                    is_valid = True
+                    current_damage = damage
+                    current_armor_damage[armor] = damage #Type: ignore
+        except json.JSONDecodeError:
+            parts = line.split(',')
+            sensor_valid = True
+            temp_damage = 0
+            temp_armor_damage = {"front": 0, "left": 0, "right": 0}
+            for part in parts:
+                part = part.strip()
+                if not part or ':' not in part:
+                    sensor_valid = False
+                    break
+                key, value_str = part.split(':', 1)
+                key = key.strip()
+                value_str = value_str.strip()
+                if key not in armor_map or not value_str.isdigit():
+                    sensor_valid = False
+                    break
+                value_num = int(value_str)
+                if value_num <= 0:
+                    sensor_valid = False
+                    break
+                mapped_key = armor_map[key]
+                temp_damage += value_num
+                temp_armor_damage[mapped_key] += value_num
+            if sensor_valid:
+                is_valid = True
+                current_damage = temp_damage
+                current_armor_damage = temp_armor_damage
+        except Exception:
+            continue
+        if is_valid:
+            total_damage += current_damage
+            for k in by_armor:
+                by_armor[k] += current_armor_damage[k]
+            valid_event_count += 1
+    most_hit = None
+    if valid_event_count > 0:
+        max_dmg = -1
+        for armor, dmg in by_armor.items():
+            if dmg > max_dmg:
+                max_dmg = dmg
+                most_hit = armor
+    avg = round(total_damage / valid_event_count, 2) if valid_event_count > 0 else 0.0
+    return {
+        "total": total_damage,
+        "by_armor": by_armor,
+        "most_hit": most_hit,
+        "avg": avg
+    }
     raise NotImplementedError("Q2 analyze_damage_log：题面 Q2·多源日志解析与统计")
 
 
