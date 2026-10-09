@@ -367,7 +367,7 @@ def decide(sensor, state, hp, heat):
     normalized_frames = [bool(frame) for frame in enemy_frames]
     visible = normalized_frames[-1]
     r_list = sensor["enemy_dist"]
-    if isinstance(r_list,int):
+    if isinstance(r_list, int):
         enemy_dist = r_list
     else:
         enemy_dist = None
