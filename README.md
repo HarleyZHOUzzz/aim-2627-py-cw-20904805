@@ -1,70 +1,49 @@
-# AIM 2627 Python Coursework —— 哨兵 Sentry 控制模块
+# AIM Coursework of Yinxi ZHOU
 
-> **全部题目、规范、评分、提交见 [题面.pdf](题面.pdf)。** 本 README 只讲怎么把环境跑起来；没在这里出现的规格细节，一律以题面为准。
+## AI 使用说明
 
-## 1. 环境要求
+本作业的代码主要由本人完成；少量内容在时间有限时参考了 AI 的解释与建议。
 
-- Python 3.8+，仅标准库（不允许第三方运行时依赖）；
-- 开发工具只需 `pytest`（测试）与 `autopep8`（风格，CI 会检查）；
-- VS Code 打开仓库会推荐安装 `ms-python.autopep8` 插件（`.vscode/extensions.json`），保存即格式化即可过风格检查。
+## Q7：`legacy_patrol.py` 缺陷修复记录
 
-## 2. 快速开始
+本模块的验收以各函数 docstring 中的契约为准。以下记录六处缺陷、定位依据与修复方式。
 
-```bash
-# 1. 用 GitHub 的 Use this template 创建你自己的仓库，然后 clone
-git clone https://github.com/<你的用户名>/<你的仓库>.git
-cd <你的仓库>   # 直接在 main 分支上开发
+### 问题 1：路线长度单位不一致
 
-# 创建虚拟环境
+`segment_length_cm` 返回的路线长度单位为厘米，而 `total_route_meters` 的返回值契约要求单位为米。原实现直接累加厘米值并返回，导致结果放大了 100 倍。
 
-python -m venv .venv
-# Windows
-.venv\Scripts\activate
-# macOS / Linux
-source .venv/bin/activate
+**修复方式：** 累加所有线段的厘米值后，再整除 `100`，将结果转换为米。
 
-# 2. 装依赖
-python -m pip install pytest autopep8
+### 问题 2：`calibrate` 在没有正样本时可能抛出 `TypeError`
 
-# 3. 启用 AI 会话归档钩子（课程要求，见下方第 3 节）
-python -m pip install 'agent-session-commit[pre-commit]==0.1.3' -i https://pypi.org/simple
-agent-session-commit install --pre-commit   # 交互选择你的 AI 助手与会话目录
+当 `samples` 为空，或其中没有正数时，`first_positive(samples)` 返回 `None`。若样本中仍有元素，例如 `[-1, -2]`，后续计算 `s - baseline` 会变成整数减去 `None`，从而抛出 `TypeError`。
 
-# 4. 跑测试（刚到手：全部 skip，CI 是绿的）
-python -m pytest
+**修复方式：** 在累计漂移前检查 `baseline`；若其为 `None`，直接返回 `0`。
 
-# 5. 看演示
-python main.py
+### 问题 3：`summarize_events` 漏统计边界 id
 
-# 6. 打开 题面.pdf 读题，开始实现 src/main/__init__.py 里的 TODO
-```
+docstring 要求统计 id 不超过 `max_id` 的事件，但原条件只接受 `id < max_id`，错误排除了 `id == max_id` 的事件。
 
-## 3. AI 会话归档（pre-commit）
+**修复方式：** 将比较条件改为小于或等于 `max_id`。
 
-本课程允许使用 AI，提交的 commit 需要携带 AI 会话归档作为透明化记录：每次 `git commit` 后，钩子会把新增会话自动 amend 进同一个提交（`.agent-sessions/bundles/`），不产生额外的归档提交。支持 Claude Code、OpenAI Codex CLI、GitHub Copilot CLI、Qoder、ZCode、Trae、Tencent CodeBuddy 等（完整名单见 [AgentLedger](https://github.com/Gentle-Lijie/AgentLedger)）。
+### 问题 4：`log` 共享可变默认参数
 
-- 配置是仓库本地的：每个 clone 运行一次 `agent-session-commit install --pre-commit`，方向键选择 agent、确认其会话目录即可；
-- 不想用 TUI 可手动配置：`git config --local agent-session.agent claude`、`git config --local agent-session.source "<会话目录>"`，然后 `python -m pip install 'pre-commit>=3.2.0' && pre-commit install`；
-- 归档是普通 Git 内容且会推送到公开仓库——不要在 AI 会话里粘贴令牌等敏感信息；
-- 换了 agent 或目录就重跑一次安装命令；卸载：从 `.pre-commit-config.yaml` 移除该条目后重跑 `pre-commit install`。
+原函数把空列表作为 `history` 的默认值。默认列表只在函数定义时创建一次，因此连续调用时，未显式传入 `history` 的日志会累加到同一个列表中，违反“每次调用都从空历史开始”的契约。
 
-## 4. 本地开发循环
+显式传入 `history` 时，函数会向该列表追加消息并修改原列表；这不是默认参数问题本身。
 
-- **写代码**：全部作业在 `src/main/__init__.py`，按题面各题规范补全每个标有 TODO 的函数；注释里标注了对应的题面主题，推荐顺序 Q1 → Q6。
-- **跑测试**：`python -m pytest` —— 可见测试是规格书的一部分，未实现的函数自动 skip，实现一个、对应测试亮一个。本地全绿 ≠ 满分（见题面）。
-- **看演示**：`python main.py`（等价于 `PYTHONPATH=src python -m main`），随实现进度逐段点亮，不进测试。
-- **Q6 自测**：`python tools/run_seeds.py --q6`（200 张固定地图统计），单 seed 渲染 `python tools/run_seeds.py --q6 --seed <N> --render`，Bonus 模式 `python tools/run_seeds.py --bonus`。
+**修复方式：** 将默认值改为 `None`；在函数内部发现 `history is None` 时再创建新列表。
 
-## 5. 仓库结构（哪些能改）
+### 问题 5：`run_legacy_sim` 的停止条件方向错误
 
-| 路径 | 说明 | 能否修改 |
-|---|---|---|
-| `src/main/__init__.py` | 你的全部作业（TODO 所在） | ✅ |
-| `README.md` | 仅末尾两个"你来写"小节 | ✅ |
-| `题面.pdf` | 题面（唯一规格说明） | ❌ 勿改 |
-| `src/main/legacy_patrol.py` | Q7 模块（与主体同步发布，修复其缺陷） | Q7 时 ✅ |
-| `.pre-commit-config.yaml` | AI 会话归档钩子配置 | ❌ 勿改 |
-| `src/tests/`、`tools/`、`.github/`、`conftest.py`、`pytest.ini`、`main.py` | 测试与基础设施 | ❌ 勿改 |
+契约要求某轮结束后体力小于或等于 `20` 时立即停止，但原代码在体力大于 `20` 时停止。这会使体力充足的模拟只执行一轮。
 
-CI 只允许修改 `src/main/**`、`README.md` 与 `.agent-sessions/**`（AI 会话归档）——其余文件改了直接红；autopep8 `--diff` 非空即败。提交方式（push、问卷、commit 粒度）见题面"提交与验收"一节。
+**修复方式：** 将停止条件改为体力小于或等于 `20`。
 
+### 问题 6：`run_legacy_sim` 未递增轮号
+
+`round_` 初始值为 `0`，原循环中却没有增加它。只要停止条件未触发，`round_ < rounds` 会始终成立，循环会反复执行第 0 轮并可能卡死。
+
+问题 5 会遮蔽这一问题：原停止条件在体力充足时立即终止；修正停止条件后，未递增轮号的问题才会暴露。
+
+**修复方式：** 每轮记录 trace 后、判断是否终止前，将 `round_` 增加 `1`。
