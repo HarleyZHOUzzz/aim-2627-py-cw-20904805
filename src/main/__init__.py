@@ -353,7 +353,72 @@ class SentryState(Enum):
 def decide(sensor, state, hp, heat):
     """TODO(Q5)：纯函数决策，返回 (action: str, new_state: SentryState)；
     sensor 字段契约、R1-R7 规则表与非法输入处理见题面 Q5 规范。"""
-    raise NotImplementedError("Q5 decide：题面 Q5·决策规则表 R1-R7")
+    if not isinstance(sensor, dict):
+        raise ValueError
+    required_input = ["enemy_frames", "enemy_dist", "robot_type", "max_hp"]
+    for field in required_input:
+        if field not in sensor:
+            raise ValueError
+    if not isinstance(state, SentryState):
+        raise ValueError
+    enemy_frames = sensor["enemy_frames"]
+    if not isinstance(enemy_frames, (tuple, list)) or len(enemy_frames) == 0 or len(enemy_frames) > 6:
+        raise ValueError
+    normalized_frames = [bool(frame) for frame in enemy_frames]
+    visible = normalized_frames[-1]
+    r_list = sensor["enemy_dist"]
+    if isinstance(r_list,int):
+        enemy_dist = r_list
+    else:
+        enemy_dist = None
+    r_type = sensor["robot_type"]
+    if r_type == "INFANTRY" or r_type == "HERO":
+        robot_type = r_type
+    else:
+        robot_type = "INFANTRY"
+    r_max_hp = sensor["max_hp"]
+    try:
+        max_hp = int(r_max_hp)
+        if max_hp <= 0:
+            max_hp = 100
+    except (ValueError, TypeError):
+        max_hp = 100
+    hp_pct = hp_ratio(hp, max_hp)
+    hp_pct = max(0, min(100, hp_pct))
+    if hp_pct <= 30:
+        return ("RETREAT", SentryState.RETREAT)
+    if state == SentryState.RETREAT:
+        if hp_pct > 30:
+            return ("RETURN", SentryState.RETURN)
+        else:
+            return ("RETREAT", SentryState.RETREAT)
+    if state == SentryState.RETURN:
+        return ("MOVE_BASE", SentryState.PATROL)
+    if state == SentryState.ENGAGE and visible:
+        if enemy_dist is not None and enemy_dist <= 3:
+            return ("SHOOT", SentryState.ENGAGE)
+        else:
+            if robot_type == "HERO":
+                return ("MOVE_RIGHT", SentryState.ENGAGE)
+            else:
+                return ("MOVE_LEFT", SentryState.PATROL)
+    if state in (SentryState.PATROL, SentryState.SUSPECT) and visible:
+        if len(normalized_frames) >= 2 and normalized_frames[-1] and normalized_frames[-2]:
+            if enemy_dist is not None and enemy_dist <= 3:
+                return ("SHOOT", SentryState.ENGAGE)
+            else:
+                if robot_type == "HERO":
+                    return ("MOVE_RIGHT", SentryState.ENGAGE)
+                else:
+                    return ("MOVE_LEFT", SentryState.ENGAGE)
+        else:
+            return ("SCAN", SentryState.SUSPECT)
+    if state in (SentryState.PATROL, SentryState.SUSPECT) and not visible:
+        if state == SentryState.PATROL:
+            return ("PATROL_MOVE", SentryState.PATROL)
+        else:
+            return ("SCAN", SentryState.SUSPECT)
+    return ("PATROL_MOVE", SentryState.PATROL)
 
 
 # ---------------------------------------------------------------------------
