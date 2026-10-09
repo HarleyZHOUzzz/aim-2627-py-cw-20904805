@@ -84,7 +84,7 @@ def analyze_damage_log(lines):
             if isinstance(data, dict):
                 armor = data.get('armor')
                 damage = data.get('damage')
-                if armor in armors and isinstance(damage, int) and damage > 0:
+                if armor in armors and isinstance(damage, int) and damage > 0 and not isinstance(damage, bool):
                     if 'id' in data:
                         log_id = data['id']
                         if log_id in seen_ids:
@@ -256,14 +256,15 @@ class SentryGrid:
             self.current_pos = (x, y)
             new_pos = (x, y)
             return new_pos
-        else:
+        elif self.is_blocked(x, y) and self.fuel > 0:
             colli = self.collision_count
             colli += 1
             self._collision_count = colli
             fuel = self._fuel
-            if self._fuel > 0:
-                fuel -= 1
+            fuel -= 1
             self._fuel = fuel
+            return self.current_pos
+        else:
             return self.current_pos
 
     def turn_left(self):
@@ -385,40 +386,52 @@ def decide(sensor, state, hp, heat):
         max_hp = 100
     hp_pct = hp_ratio(hp, max_hp)
     hp_pct = max(0, min(100, hp_pct))
+    # R1
     if hp_pct <= 30:
-        return ("RETREAT", SentryState.RETREAT)
+        return "RETREAT", SentryState.RETREAT
+    # R2
     if state == SentryState.RETREAT:
         if hp_pct > 30:
-            return ("RETURN", SentryState.RETURN)
+            return "RETURN", SentryState.RETURN
         else:
-            return ("RETREAT", SentryState.RETREAT)
+            return "RETREAT", SentryState.RETREAT
+    # R3
     if state == SentryState.RETURN:
-        return ("MOVE_BASE", SentryState.PATROL)
+        return "MOVE_BASE", SentryState.PATROL
+    # R4
     if state == SentryState.ENGAGE and visible:
         if enemy_dist is not None and enemy_dist <= 3:
-            return ("SHOOT", SentryState.ENGAGE)
+            return "SHOOT", SentryState.ENGAGE
         else:
             if robot_type == "HERO":
-                return ("MOVE_RIGHT", SentryState.ENGAGE)
+                return "MOVE_RIGHT", SentryState.ENGAGE
             else:
-                return ("MOVE_LEFT", SentryState.PATROL)
+                return "MOVE_LEFT", SentryState.ENGAGE
+    # R5
+    if state == SentryState.ENGAGE and not visible:
+        if len(normalized_frames) >= 2 and not normalized_frames[-2]:
+            return "SCAN", SentryState.SUSPECT
+        else:
+            return "HOLD_FIRE", SentryState.ENGAGE
+    # R6
     if state in (SentryState.PATROL, SentryState.SUSPECT) and visible:
         if len(normalized_frames) >= 2 and normalized_frames[-1] and normalized_frames[-2]:
             if enemy_dist is not None and enemy_dist <= 3:
-                return ("SHOOT", SentryState.ENGAGE)
+                return "SHOOT", SentryState.ENGAGE
             else:
                 if robot_type == "HERO":
-                    return ("MOVE_RIGHT", SentryState.ENGAGE)
+                    return "MOVE_RIGHT", SentryState.ENGAGE
                 else:
-                    return ("MOVE_LEFT", SentryState.ENGAGE)
+                    return "MOVE_LEFT", SentryState.ENGAGE
         else:
-            return ("SCAN", SentryState.SUSPECT)
+            return "SCAN", SentryState.SUSPECT
+    # R7
     if state in (SentryState.PATROL, SentryState.SUSPECT) and not visible:
         if state == SentryState.PATROL:
-            return ("PATROL_MOVE", SentryState.PATROL)
+            return "PATROL_MOVE", SentryState.PATROL
         else:
-            return ("SCAN", SentryState.SUSPECT)
-    return ("PATROL_MOVE", SentryState.PATROL)
+            return "SCAN", SentryState.SUSPECT
+    return "PATROL_MOVE", SentryState.PATROL
 
 
 # ---------------------------------------------------------------------------
