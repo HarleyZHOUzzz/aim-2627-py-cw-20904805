@@ -184,7 +184,7 @@ class SentryGrid:
         y = int(cell[1])
         x = max(0, min(self._width - 1, x))
         y = max(0, min(self._height - 1, y))
-        return x,y
+        return x, y
 
     # -- 只读属性（已提供，勿改） ------------------------------------------
     @property
