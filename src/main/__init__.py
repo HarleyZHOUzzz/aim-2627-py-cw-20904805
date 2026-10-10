@@ -364,25 +364,20 @@ def decide(sensor, state, hp, heat):
         raise ValueError
     normalized_frames = [bool(frame) for frame in enemy_frames]
     visible = normalized_frames[-1]
-    r_list = sensor["enemy_dist"]
-    if isinstance(r_list, int):
-        enemy_dist = r_list
+    r_dist = sensor["enemy_dist"]
+    if isinstance(r_dist, int) or r_dist is None:
+        enemy_dist = r_dist
     else:
-        enemy_dist = None
+        raise ValueError
     r_type = sensor["robot_type"]
     if r_type == "INFANTRY" or r_type == "HERO":
         robot_type = r_type
     else:
-        robot_type = "INFANTRY"
+        raise ValueError
     r_max_hp = sensor["max_hp"]
-    try:
-        max_hp = int(r_max_hp)
-        if max_hp <= 0:
-            max_hp = 100
-    except (ValueError, TypeError):
-        max_hp = 100
-    hp_pct = hp_ratio(hp, max_hp)
-    hp_pct = max(0, min(100, hp_pct))
+    if not r_max_hp > 0 or not isinstance(r_max_hp, (int, float)):
+        raise ValueError
+    hp_pct = hp_ratio(hp, r_max_hp)
     # R1
     if hp_pct <= 30:
         return "RETREAT", SentryState.RETREAT
@@ -399,7 +394,7 @@ def decide(sensor, state, hp, heat):
     if state == SentryState.ENGAGE and visible:
         if enemy_dist is not None and enemy_dist <= 3:
             return "SHOOT", SentryState.ENGAGE
-        else:
+        elif enemy_dist is not None and enemy_dist > 3:
             if robot_type == "HERO":
                 return "MOVE_RIGHT", SentryState.ENGAGE
             else:
@@ -428,21 +423,78 @@ def decide(sensor, state, hp, heat):
             return "PATROL_MOVE", SentryState.PATROL
         else:
             return "SCAN", SentryState.SUSPECT
-    return "PATROL_MOVE", SentryState.PATROL
+    return None
 
 
-# ---------------------------------------------------------------------------
+# -------------------------------------------------------------------ƒ--------
 # Q6 巡逻任务（题面 Q6·巡逻契约与验收阈值）
 # ---------------------------------------------------------------------------
 def run_patrol(grid, max_steps=500):
     """TODO(Q6)：sense → decide → act 主循环；
     循环结构、终止条件、脱困自由度与统计返回契约见题面 Q6 规范。"""
-    raise NotImplementedError("Q6 run_patrol：题面 Q6·主循环与统计契约")
+    visited = {grid.current_pos}
+    path = [grid.current_pos]
+    dead_ends = set()
+    steps = 0
+    success = False
+    def turn_to(target_facing):
+        while grid.facing != target_facing:
+            grid.turn_right()
+    def distance(posi):
+        return (abs(posi[0] - grid.enemy_pos[0])
+                + abs(posi[1] - grid.enemy_pos[1]))
+    for i in range(max_steps):
+        if grid.found_enemy:
+            success = True
+            break
+        if grid.fuel <= 0:
+            break
+        pos = grid.current_pos
+        next_facing = next_step_toward(
+            pos, grid.enemy_pos, grid.obstacles | dead_ends, grid.facing
+        )
+        dx, dy = next_facing.delta
+        next_pos = (pos[0] + dx, pos[1] + dy)
+        can_greedy_move = (
+            not grid.is_blocked(*next_pos)
+            and next_pos not in dead_ends
+            and distance(next_pos) < distance(pos)
+        )
+        if can_greedy_move:
+            turn_to(next_facing)
+            grid.move_forward()
+            path.append(grid.current_pos)
+        else:
+            dead_ends.add(pos)
+            if len(path) == 1:
+                break
+            path.pop()
+            previous_pos = path[-1]
+            back_facing = Facing((previous_pos[0] - pos[0],
+                                  previous_pos[1] - pos[1]))
+            turn_to(back_facing)
+            grid.move_forward()
+        steps += 1
+        visited.add(grid.current_pos)
+    if grid.found_enemy:
+        success = True
+    return {
+        "success": success,
+        "steps": steps,
+        "collisions": grid.collision_count,
+        "visited_count": len(visited),
+        "final_pos": grid.current_pos,
+    }
 
 
 def report_to_json(stats):
     """TODO(Q6)：把 stats 序列化为确定性的 JSON 字符串，见题面 Q6 规范。"""
-    raise NotImplementedError("Q6 report_to_json：题面 Q6·报告序列化")
+    return json.dumps(
+        stats,
+        ensure_ascii=False,
+        sort_keys=True,
+        separators=(",", ":"),
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -450,6 +502,10 @@ def report_to_json(stats):
 # ---------------------------------------------------------------------------
 def bfs_path_length(start, target, obstacles):
     """TODO(Bonus)：BFS 全局最短路步数；返回语义与边界职责见题面 Bonus 规范。"""
+    # mp = obstacles
+    # vis = {}
+    # queue = {}
+
     raise NotImplementedError("Bonus bfs_path_length")
 
 
