@@ -184,7 +184,7 @@ class SentryGrid:
         y = int(cell[1])
         x = max(0, min(self._width - 1, x))
         y = max(0, min(self._height - 1, y))
-        return (x, y)
+        return x,y
 
     # -- 只读属性（已提供，勿改） ------------------------------------------
     @property
@@ -253,9 +253,7 @@ class SentryGrid:
             fuel = self._fuel
             fuel -= 1
             self._fuel = fuel
-            self.current_pos = (x, y)
-            new_pos = (x, y)
-            return new_pos
+            return self.current_pos
         elif self.is_blocked(x, y) and self.fuel > 0:
             colli = self.collision_count
             colli += 1
@@ -322,7 +320,6 @@ def next_step_toward(pos, target, obstacles, current_facing=Facing.UP):
         return candidates[0]
     dx_target = target[0] - pos[0]
     dy_target = target[1] - pos[1]
-    preferred = None
     if abs(dx_target) > abs(dy_target):
         if dx_target > 0:
             preferred = Facing.RIGHT
