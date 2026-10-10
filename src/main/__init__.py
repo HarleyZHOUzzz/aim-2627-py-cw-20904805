@@ -437,12 +437,15 @@ def run_patrol(grid, max_steps=500):
     dead_ends = set()
     steps = 0
     success = False
+
     def turn_to(target_facing):
         while grid.facing != target_facing:
             grid.turn_right()
+
     def distance(posi):
         return (abs(posi[0] - grid.enemy_pos[0])
                 + abs(posi[1] - grid.enemy_pos[1]))
+
     for i in range(max_steps):
         if grid.found_enemy:
             success = True
