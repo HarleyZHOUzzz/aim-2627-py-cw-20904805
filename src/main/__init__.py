@@ -519,6 +519,8 @@ def bfs_path_length(start, target, obstacles):
     ty = target[1]
     vis.add((sx, sy))
     queue.insert(0, (sx, sy, 0))
+    if start == target:
+        return 0
     while queue:
         now = queue.pop()
         if now[0] == tx and now[1] == ty:
