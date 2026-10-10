@@ -505,10 +505,31 @@ def report_to_json(stats):
 # ---------------------------------------------------------------------------
 def bfs_path_length(start, target, obstacles):
     """TODO(Bonus)：BFS 全局最短路步数；返回语义与边界职责见题面 Bonus 规范。"""
-    # mp = obstacles
-    # vis = {}
-    # queue = {}
-
+    moves = {
+        Facing.UP: (0, 1),
+        Facing.DOWN: (0, -1),
+        Facing.LEFT: (-1, 0),
+        Facing.RIGHT: (1, 0)
+    }
+    vis = set()
+    queue = []
+    sx = start[0]
+    sy = start[1]
+    tx = target[0]
+    ty = target[1]
+    vis.add((sx, sy))
+    queue.insert(0, (sx, sy, 0))
+    while queue:
+        now = queue.pop()
+        if now[0] == tx and now[1] == ty:
+            return now[2]
+        for move in moves.values():
+            next_ = (now[0] + move[0], now[1] + move[1])
+            if next_ in obstacles or next_ in vis:
+                continue
+            vis.add(next_)
+            queue.insert(0, (next_[0], next_[1], now[2] + 1))
+    return -1
     raise NotImplementedError("Bonus bfs_path_length")
 
 
